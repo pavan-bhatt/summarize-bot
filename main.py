@@ -8,7 +8,7 @@ import json
 from klaviyo_api import KlaviyoAPI
 
 #klaviyo = KlaviyoAPI("pk_caa33f13dd50eef23c12183244201ea731", max_delay=60, max_retries=3, test_host=None)
-
+#client = OpenAI(api_key=os.environ.get("ENV_NAME"))
 
 KLAVIYO_HEADERS = {
     "accept": "application/json",
@@ -16,8 +16,6 @@ KLAVIYO_HEADERS = {
     "content-type": "application/json",
     "Authorization": "Klaviyo-API-Key pk_caa33f13dd50eef23c12183244201ea731"
 }
-
-#client = OpenAI(api_key=os.environ.get("ENV_NAME"))
 
 #REMOVE AFTER
 openai.api_key = "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"

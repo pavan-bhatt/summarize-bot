@@ -7,8 +7,9 @@ from bs4 import BeautifulSoup
 import json
 from klaviyo_api import KlaviyoAPI
 
-#klaviyo = KlaviyoAPI("pk_caa33f13dd50eef23c12183244201ea731", max_delay=60, max_retries=3, test_host=None)
-#client = OpenAI(api_key=os.environ.get("ENV_NAME"))
+#REMOVE AFTER - store as env var
+klaviyo = KlaviyoAPI("pk_caa33f13dd50eef23c12183244201ea731", max_delay=60, max_retries=3, test_host=None)
+
 
 KLAVIYO_HEADERS = {
     "accept": "application/json",
@@ -17,8 +18,24 @@ KLAVIYO_HEADERS = {
     "Authorization": "Klaviyo-API-Key pk_caa33f13dd50eef23c12183244201ea731"
 }
 
-#REMOVE AFTER
-openai.api_key = "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"
+USE_SMART_SENDING = "FALSE"
+SEND_TIME = datetime.now().replace(hour=14, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S')
+
+ACCOUNT_DATA = {
+    "LIST_ID": "Uj7ibu",
+    "TEMPLATE_ID": "S2pjUD",
+    "API_KEY": klaviyo,
+    "SUBJECT": "ON THE RECORD: your monthly recap",
+    "PREVIEW": "A look at everything you might have missed this month",
+    "FROM": "hello@e.uk.yourdomain.com",
+    "FROM_LABEL": "Your Domain",
+    "SEND_TIME": SEND_TIME
+}
+
+
+#REMOVE AFTER - store as env var
+openai.api_key = "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"
+#client = OpenAI(api_key=os.environ.get("ENV_NAME"))
 
 current_date_time = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).strftime('%Y-%m-%dT%H:%M:%S')
 
@@ -1024,10 +1041,79 @@ def create_template(formatted_html, headers):
         print(f"Failed to create template. Status code: {response.status_code}")
 
 
-# def create_campaign(template):
-#     templates = klaviyo.Templates.get_templates()
-#     print(templates)
-#     return
+def create_campaign(account_data):
+    create_campaign_data = {
+        "data" : {
+            "type": "campaign",
+            "attributes": {
+                "name": f"DAILY NEWS DIGEST",
+                "audiences": {
+                    "included": [account_data.get('LIST_ID')],
+                },
+                "send_strategy": {
+                    "method": "static",
+                    "options_static": {
+                        "datetime" : account_data.get('SEND_TIME')
+                    }
+                },
+                "campaign-messages": {
+                "data": [
+                {
+                    "type": "campaign-message",
+                    "attributes": {
+                    "channel": "email",
+                    "label": "My message name",
+                    "content": {
+                        "subject": "Buy our product!",
+                        "preview_text": "My preview text",
+                        "from_email": "store@my-company.com",
+                        "from_label": "My Company",
+                        "reply_to_email": "reply-to@my-company.com",
+                        "cc_email": "cc@my-company.com",
+                        "bcc_email": "bcc@my-company.com"
+                    },
+                    "render_options": {
+                        "shorten_links": True
+                    }
+                    }
+                }
+                ]
+            }
+            },
+        }
+    }
+
+    new_campaign = klaviyo.Campaigns.create_campaign(create_campaign_data)
+    campaign_id = new_campaign["data"]["id"]
+    message_id = new_campaign["data"]["relationships"]["campaign-messages"]["data"][0]["id"]
+
+    create_campaign_message_assign_template_data =   {
+        "data": {
+            "type": "campaign-message",
+            "id" : message_id,
+            "relationships": {
+            "template": {
+                "data": {
+                "type": "template",
+                "id":  account_data.get('TEMPLATE_ID')
+                }
+            }
+            }
+        }
+    }
+
+    print(create_campaign_message_assign_template_data)
+
+    response = klaviyo.Campaigns.create_campaign_message_assign_template(create_campaign_message_assign_template_data)
+
+    create_campaign_send_job_data = {
+        "data" :{
+            "type": "campaign-send-job",
+            "id": campaign_id,
+        }
+    }
+
+    klaviyo.Campaigns.create_campaign_send_job(create_campaign_send_job_data)
 
 
 
@@ -1053,6 +1139,7 @@ def main():
 
     formatted_html = format_to_html(extracted_news_content)
     create_template(formatted_html, KLAVIYO_HEADERS)
+    create_campaign(ACCOUNT_DATA)
     #print(formatted_html)
 
 
